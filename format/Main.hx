@@ -26,16 +26,30 @@ class Main {
 #elseif (cli == "generate-parser")
 		throw("Not implemented here");
 #else
-		var p = new format.Parser();
-		var doc = p.parseStream(Sys.stdin(), Sys.getCwd());
+	
+        if (Sys.args().length==0) {trace('argument required'); Sys.exit(1);}
+        if (!sys.FileSystem.exists(Sys.args()[0])) {trace('file not found:' + Sys.args()[0]); Sys.exit(1);}
+        var p = new format.Parser();
+		var doc = p.parseFile(Sys.args()[0]);
 		// trace(doc);
 
 		var buf = new StringBuf();
 		var api = {
 			saveContent : function (path, content) {
+                buf.add('<!DOCTYPE html>\n');
+                buf.add('\n');
+                buf.add('<html>\n');
+                buf.add('<head>\n');
+                buf.add('    <title>Basic concepts</title>\n');
+                buf.add('    <link rel="stylesheet" href="brtpg.css">\n');
+                buf.add('    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>\n');
+                buf.add('</head>\n');
+                buf.add('<body>\n');
 				buf.add('<!-- file $path -->\n');
 				buf.add(content);
 				buf.add("\n\n");
+                buf.add('</body>\n');
+                buf.add('</html>\n');
 			}
 		}
 		var hgen = new format.HtmlGenerator(api);

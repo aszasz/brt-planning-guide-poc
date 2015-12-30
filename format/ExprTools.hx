@@ -9,6 +9,8 @@ class HDefExprTools {
 		case HText(_), HCode(_): expr.expr;
 		case HEmph(e): HEmph(f(e));
 		case HHighlight(e): HHighlight(f(e));
+        //case HURL(u,e): HURL(u,f(e));
+        //case HRef(l,e): Href(l,f(e));
 		case HList(list): HList(list.map(f));
 		} }
 	}

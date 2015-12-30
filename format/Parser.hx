@@ -145,6 +145,7 @@ class Parser {
 				return parseInlineCode();
 			case _ if (delimiter != null && peek(0, delimiter.length) == delimiter):
 				input.pos += delimiter.length;
+                trace ('I found a $delimiter');
 				delimiter = null;
 				break;
 			case "*":
@@ -233,6 +234,35 @@ class Parser {
 					trace('TODO handle other fancy features at ${mkPos()}');
 					input.pos++;
 				}
+            case ">":
+                input.pos++;
+                label = null;
+				var quote = [];
+				var h; //= parseHorizontal("@", true);
+			    do {
+					h = parseHorizontal("@");
+                    quote.push(h);
+				} while (peek(-1)!="@");
+				if (quote.length == 0)
+                    throw mkErr('Could not find quote');
+				var quotetext = switch quote.length {
+				case 1: quote[0];
+				case _: mkExpr(HList(quote), quote[0].pos);
+				}
+                trace('quote is $quotetext \n ');
+                var  author= [];
+				var h = parseHorizontal(null, true);
+				while (h != null) {
+					author.push(h);
+					h = parseHorizontal(null);
+				}
+				if (author.length == 0)
+                    throw mkErr('Could not find author');
+				var authortext = switch author.length {
+				case 1: author[0];
+				case _: mkExpr(HList(author), author[0].pos);
+				}
+				list.push(mkExpr(VQuote(quotetext, authortext, label), quotetext.pos));
 			case _:
 				label = null;
 				var par = [];

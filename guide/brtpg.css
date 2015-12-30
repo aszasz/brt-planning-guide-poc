@@ -25,3 +25,10 @@ h3 {
 h4, h5, h6 {
     font-size: 100%;
 }
+.quote{
+    font-style:italic;
+}
+.author{
+    color:orange;
+}
+

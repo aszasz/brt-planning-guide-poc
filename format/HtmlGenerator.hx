@@ -51,8 +51,10 @@ class HtmlGenerator implements Generator {
 				var lab = mkLabel(curLabel, "section", label);
 				indent(curDepth) + '<p id="${urlEncode(lab)}" ${posAttrs(expr.pos)}>${generateHorizontal(par)}</p>';
 			} else {
-				indent(curDepth) + '<p ${posAttrs(expr.pos)}>${generateHorizontal(par)}</p>';
+                indent(curDepth) + '<p ${posAttrs(expr.pos)}>${generateHorizontal(par)}</p>';
 			}
+        case VQuote(quote, author, label):
+            indent(curDepth) + '<p ${posAttrs(expr.pos)}><span class="quote">${generateHorizontal(quote)}</span><span class="author"${generateHorizontal(author)}</span></p>';
 		case VSection(name, contents, label):
 			var dep = curDepth + 1;
 			var lab = mkLabel(curLabel, "section", label);
