@@ -5,6 +5,7 @@ import format.Document;
 using format.ExprTools;
 using StringTools;
 
+
 typedef Input = {
 	fname:String,
 	bpath:String,
@@ -14,12 +15,12 @@ typedef Input = {
 }
 
 class Parser {
-	var input:Input;
+	var input:Array<Input>;
 
 	var label:Null<String>;
 
 	function mkPos():Pos
-		return { fileName : input.fname, lineNumber : input.lino };
+		return { fileName : input[input.length].fname, lineNumber : input[input.length].lino };
 
 	function mkExpr<Def>(expr:Def, ?pos:Pos)
 		return { expr : expr, pos : pos != null ? pos : mkPos() };
@@ -29,10 +30,27 @@ class Parser {
 
 	function peek(?offset=0, ?len=1)
 	{
-		var i = input.pos + offset;
-		if (i + len > input.buf.length)
-			return null;
-		return input.buf.substr(i, len);
+		var readpos = input[input.length].pos + offset;
+        var lastpos = readpos + len - 1;
+		if (readpos > input[input.length].buf.length){
+            var newoffset =  readpos - input[input.length].buf.length;
+            var temp = input.pop();
+            var ret =  peek(newoffset, len);
+            input.push(temp);
+            return ret;
+        }
+        if (lastpos > input[input.length].buf.length){
+            var newoffset =  readpos - input[input.length].buf.length;
+            var temp = input.pop();
+            var ret =  peek(newoffset, len);
+            input.push(temp);
+            return ret;
+        if
+        var ret = input[input.length].buf.substr(i);
+            ret = ret + peek(
+            return null;
+        }
+		return input[input.length].buf.substr(i, len);
 	}
 
 	function parseFancyLabel()
@@ -209,6 +227,29 @@ class Parser {
 		return { depth : depth, label : label, name : nameExpr, pos: pos };
 	}
 
+    function parseTable 
+    {
+        var pat = ~/^#TAB#(.+)\n\|(    /
+        var name = [];
+		label = null;
+		while (true) {
+			var h = parseHorizontal("\n|", true);
+			if (h == null)
+				break;
+			name.push(h);
+		}
+		var nameExpr = switch name.length {
+		case 0: throw mkErr("A table a title", pos);
+		case 1: name[0];
+		case _: mkExpr(HList(name), name[0].pos);
+		}
+
+		if (label == null)
+			label = nameExpr.toLabel();
+
+        return { title:name, table:table, label:nameExpr, pos:pos};
+    }
+
 	function parseVertical(depth:Int):Expr<VDef>
 	{
 		var list = [];
@@ -219,6 +260,12 @@ class Parser {
 			case "\n":
 				input.pos++;
 				input.lino++;
+            case "#" if peek(0,4) = "#TAB#"
+                var table = parseTable()
+                if (table == null) 
+                    throw mkErr('Fail to read table');
+                else
+                    list.push(mkExpr(VTable(table.title, table.table, table.label), table.pos));
 			case "#": // fancy
 				var heading = parseFancyHeading(depth);
 				if (heading != null) {

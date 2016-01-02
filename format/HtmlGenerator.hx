@@ -20,6 +20,31 @@ class HtmlGenerator implements Generator {
 		return curLabel != "" ? '$curLabel.$label' : label;
 	}
 
+    function generateTable(expr:Expr<VDef>,?depth:Int=0, ?curLabel="")
+    {
+        var buf = new StringBuf();
+        switch expr.expr{
+        case VTable(name, table, label):
+            buf.add( indent(depth) + '${generateHorizontal(name)}\n' );
+            var lab = mkLabel(curLabel, "table", label);
+            buf.add( indent(depth) + '<table id="${urlEncode(lab)}" ${posAttrs(expr.pos)}>\n' );
+            buf.add( indent(depth+1) + '<tr>\n' );
+            for (col in table.header)
+                buf.add( indent(depth+2) + '<th>${generateHorizontal(col)}</th>\n' );
+            buf.add ('</tr>\n' );
+            for (row in table.data) {
+                buf.add( indent(depth+1) + "<tr>\n" );
+                for (col in row) 
+                    buf.add( indent(depth+2) + '<td>${generateHorizontal(col)}</td>\n' );
+                buf.add( indent(depth)+1 + "</tr>\n" );
+            }
+            buf.add( indent(depth) + "</table>\n" );
+        default:
+            throw ('Expr<VDef> should be table : '+ expr.pos);
+        }
+        return buf.toString();
+    }
+
 	function generateHorizontal(expr:Expr<HDef>)
 	{
 		if (expr == null)
@@ -38,7 +63,7 @@ class HtmlGenerator implements Generator {
 		}
 	}
 
-	function indent(depth:Int)
+    function indent(depth:Int)
 		return depth > 0 ? StringTools.rpad("", "\t", depth) : "";
 
 	function generateVertical(expr:Expr<VDef>, ?curDepth=0, ?curLabel="")
@@ -54,7 +79,11 @@ class HtmlGenerator implements Generator {
                 indent(curDepth) + '<p ${posAttrs(expr.pos)}>${generateHorizontal(par)}</p>';
 			}
         case VQuote(quote, author, label):
-            indent(curDepth) + '<p ${posAttrs(expr.pos)}><span class="quote">${generateHorizontal(quote)}</span><span class="author"${generateHorizontal(author)}</span></p>';
+            indent(curDepth) + '<p ${posAttrs(expr.pos)}><span class="quote">${generateHorizontal(quote)}</span>'
+                             + '<span class="author"${generateHorizontal(author)}</span></p>';
+		case VTable(name, table, label):
+            generateTable(expr, curDepth, curLabel) ; 
+
 		case VSection(name, contents, label):
 			var dep = curDepth + 1;
 			var lab = mkLabel(curLabel, "section", label);

@@ -61,10 +61,10 @@ enum HDef {
 // 	placement : ImagePlacement
 // }
 
-// typedef Table = {
-// 	header : Array<Expr<HDef>>,
-// 	data : Array<Array<Expr<HDef>>>
-// }
+typedef Table = {
+ 	header : Array<Expr<HDef>>,
+ 	data : Array<Array<Expr<HDef>>>
+ }
 
 /*
 	A vertical expression definition.
@@ -80,7 +80,7 @@ enum VDef {
     VQuote (quote: Expr<HDef>, author: Expr<HDef>, ?label:String);
 	VSection(name:Expr<HDef>, contents:Expr<VDef>, label:String);
 	// VFig(caption:Expr<HDef>, copyright:Expr<HDef>, image:Image, label:String);
-	// VTable(title:Expr<HDef>, table:Table, label:String);
+	VTable(title:Expr<HDef>, table:Table, label:String);
 	VList(list:Array<Expr<VDef>>);
 }
 

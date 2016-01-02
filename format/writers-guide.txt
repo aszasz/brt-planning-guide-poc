@@ -269,7 +269,7 @@ To split subjects within the same book division unit, one must add a vertical pa
 
 \\v-space
 
-\*** markdown form:
+*** markdown form:
 
 \*\*\*
 
@@ -587,9 +587,9 @@ Speed
 :caption={The introduction of BRT and design changes to poorly controlled and congested
     intersections often leads to efficiency improvements for both public transport
         vehicles and mixed traffic.}
-        :label={congested-intersection}
-        :copyright={Photo by Lloyd Wright.}
-        :path={img/congested-intersection.jpg}
+:label={congested-intersection}
+:copyright={Photo by Lloyd Wright.}
+:path={img/congested-intersection.jpg}
 
 
 \box{display-title}{label, other lable}
