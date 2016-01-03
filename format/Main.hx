@@ -26,12 +26,13 @@ class Main {
 #elseif (cli == "generate-parser")
 		throw("Not implemented here");
 #else
-	
-        if (Sys.args().length==0) {trace('argument required'); Sys.exit(1);}
-        if (!sys.FileSystem.exists(Sys.args()[0])) {trace('file not found:' + Sys.args()[0]); Sys.exit(1);}
         var p = new format.Parser();
-		var doc = p.parseFile(Sys.args()[0]);
-		// trace(doc);
+        if (Sys.args().length == 0) 
+                var doc = p.parseStream(Sys.stdin(), Sys.getCwd());
+        else 
+           		var doc = p.parseFile(Sys.args()[0]);
+                
+        // trace(doc);
 
 		var buf = new StringBuf();
 		var api = {

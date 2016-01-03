@@ -6,33 +6,103 @@ using format.ExprTools;
 using StringTools;
 
 
-typedef Input = {
-	fname:String,
-	bpath:String,
-	buf:String,
-	pos:Int,
-	lino:Int
+typedef InputBuffer = {
+	filename:String,
+	basepath:String,
+	content:String,
+	curpos:Int,
+	curline:Int,
+    curlineStartPos:Int
 }
 
 class Parser {
-	var input:Array<Input>;
 
-	var label:Null<String>;
+    var label:Null<String>;
+    var input:Array<InputBuffer>;
+    public var curpos (get, set):Int;
+    public var curline (get, set):Int;
+    
+    public function filename() { 
+        if (input.length>0) return input[input.length].filename;
+        return null;
+    }
 
-	function mkPos():Pos
-		return { fileName : input[input.length].fname, lineNumber : input[input.length].lino };
+    public function basepath() { 
+        if (input.length>0) return input[input.length].basepath;
+        return null;
+    }
 
-	function mkExpr<Def>(expr:Def, ?pos:Pos)
-		return { expr : expr, pos : pos != null ? pos : mkPos() };
+    public function get_curpos() { 
+       if (input.length>0)  return input[input.length].pos; 
+       return null;
+    }
 
-	function mkErr(msg:String, ?pos:Pos)
-		return { msg : msg, pos : pos != null ? pos : mkPos() };
+    public function get_curline() { 
+        if (input.length>0) return input[input.length].curline;
+        return null;
+    }
+    
+    public function set_curline (newline) { 
+        input[input.length].curline = newline; 
+        input[input.length].curlinetartpos = input[input.length].curpos; 
+    }
 
-	function peek(?offset=0, ?len=1)
-	{
-		var readpos = input[input.length].pos + offset;
+    public function set_curpos(newpos:Int) {
+        left = newpos - input[input.length].content.length; 
+        if (left>0) {
+            input.pop;
+            this.curpos += left;
+        }
+    }
+    
+    function mkPos() {
+        if (input.length>0)
+            return { file : input[input.length].fname, 
+                     line : input[input.length].curline,
+                     pos: input[input.length].curpos - input[input.length].curlinestartpos };
+        else
+            return null;
+    }
+
+    function printBufferPosition (ib:InputBuffer) {
+        return 'file = ${ib.filename}, line = ${ib.curline}, pos = ${ib.curpos - ib.curlinestartpos}'
+    }
+    
+    function printStack() {
+        if (input.length == 0) return 'no file on input stack';
+        var ret = input[0].basepath; 
+        for (inputbuffer in input) ret i+= "--> " printBufferPosition (inputbuffer); 
+    }
+
+    function addInputBuffer (relativeFilePath:String, ?basePath:String, ?content=String)
+    {
+        if (basePath == null) basePath = basepath();
+        var path = basePath + "/" + relativeFilePath
+        var filePathSplit = relativeFilePath.split("/");
+        var fileName = filePathSplit.pop();
+        var fileDir = filePathSplit.join("/");
+        if (content == null) {
+            var prevWorkDir = Sys.getCwd();
+            if (fileDir != "") Sys.setCwd(fileDir);
+            if (!FileSystem.exists(path)) throw (mkErr('file not found: $path'));
+            content = sys.io.File.getContent(path).rtrim;
+            Sys.setCwd(prevWorkDir);
+        }
+        inputbuffer = {
+            filename : fileName,
+            basepath : fileDir,
+            content : content,
+            curpos : 0,
+            curline : 1,
+            curlineStartPos : 0
+        };
+        input.push(inputBuffer);
+    }
+    function peek(?offset=0, ?len=1) 
+    {
+        var readpos = input[input.length].pos + offset;
         var lastpos = readpos + len - 1;
-		if (readpos > input[input.length].buf.length){
+        if (readpos > input[input.length].buf.length){
             var newoffset =  readpos - input[input.length].buf.length;
             var temp = input.pop();
             var ret =  peek(newoffset, len);
@@ -40,18 +110,25 @@ class Parser {
             return ret;
         }
         if (lastpos > input[input.length].buf.length){
-            var newoffset =  readpos - input[input.length].buf.length;
+            var ret = input[input.length].buf.substr(readpos);
+            var newlen = len - ret.length;
+            var newoffset = 0;
             var temp = input.pop();
-            var ret =  peek(newoffset, len);
+            ret +=  peek(newoffset, newlen);
             input.push(temp);
             return ret;
-        if
-        var ret = input[input.length].buf.substr(i);
-            ret = ret + peek(
-            return null;
         }
-		return input[input.length].buf.substr(i, len);
-	}
+        return input[input.length].buf.substr(readpos, len);
+    }
+
+}
+
+
+	function mkExpr<Def>(expr:Def, ?pos:Pos)
+		return { expr : expr, pos : pos != null ? pos : mkPos() };
+
+	function mkErr(msg:String, ?pos:Pos)
+		return { msg : msg, pos : pos != null ? pos : mkPos() };
 
 	function parseFancyLabel()
 	{
@@ -334,44 +411,118 @@ class Parser {
 		}
 	}
 
+    function getVBlock() {
+        var emptyLineRegex = "\\n( |\\t|\\r)+?\\n"
+        var interest =  ["//","/\\*","\\\\pipe-in{", "\\\\start-ignore{", "`",  "```","\\n( |\\t|\\r)+?\\n"];
+ // var interest =  ["//","\\\\pipe-in{(.*?)}", "\\\\start-ignore{(.*?)}", "`",  "```","\\n( |\\t|\\r)+?\\n"];
+        var endinterest = "/n", "*/", "\n", "\\end-ignore{", "`", done, done, "```"];
+        var block = new StringBuf() =  ""
+        var find = readUntilPattern()
+        block.add(find.left);
+		switch find.found{
+        case null:
+            block.add(find.right);
+        case "//":
+            readUntil("\n");
+            block.add(getVBlock())
+        case "/*"
+            readUntil("*/");
+            // if (!firstthing && !lastthing && contain(\n \n)) warning("comment block not very visiblei");
+            block.add(getVBlock())
+        case "\\pipe-in{"
+            //if (!startline) warning(should start line);
+            pipeiIn (readUntil("}"));
+            block.add(getVBlock())
+        case "\\start-ignore":
+            //if (!firstthing() and !lastthing) warning ("should be alone");
+            readUntil("\\endignore{"+readUntil("}")+"}");
+            //if (!firstthing and !lastthing) warning ("should be alone");
+            block.add(getVBlock())
+        case "`":
+            block.add("`");
+            block.add(readUntil("`",true);
+            block.add(getVBlock())
+        case "```" if (!find.left.trim=""):
+            warning("code block (```) should start a vertical block");
+            input.pos += find.pos.pos
+        case "```"
+            block.add("```");
+            findend = readUntil('```',true);
+            if (!ing) warning ("should be last thing");
+        default:
+        
+        }
+        return block.toString().trim
+    }
+
+        function readUntil(end) {
+			var i = input.buf.indexOf(end, input.pos);
+			var ret = i > -1 ? input.buf.substring(input.pos, i + end.length) : input.buf.substring(input.pos);
+			input.pos += ret.length;
+			return ret;
+		}
+         
+
+       	while (true) {
+			switch peek() {
+			case null:
+				break;
+			case "/" if (peek(1) == "/"):
+				readUntil("\n");
+			case "/" if (peek(1) == "*"):
+				var p = mkPos();
+				readUntil("*/");
+				if (input.buf.substr(input.pos - 2, 2) != "*/")
+					throw mkErr("Unclosed comment", p);
+			case "\r":
+				input.pos++;
+			case " ", "\t":
+				input.pos++;
+				if (!ltrim && peek(0) != null && !peek(0).isSpace(0))
+					buf.add(" ");
+			case "\n":
+				input.pos++;
+				input.lino++;
+				if (StringTools.trim(buf.toString()) == "")
+					return null;
+				if (peek(0) != null && !peek(0).isSpace(0))
+					buf.add(" ");
+				break;
+    
+    
+    
+    }
+
 	function parseDocument():Document
-		return parseVertical(0);
-
-	public function parseStream(stream:haxe.io.Input, ?basePath=".")
-	{
-		var _input = input;
-
-		input = {
-			fname : "stdin",
-			bpath : basePath,
-			buf : stream.readAll().toString(),
-			pos : 0,
-			lino : 1
-		};
-		trace("reading from the standard input");
-		var ast = parseDocument();
-
-		input = _input;
+    {
+        var ast:Document;
+        while input.length > 0 
+            addVBlock(getVBlock(),ast);
 		return ast;
-	}
+    }
+
+    function pipeIn(relativeFilePath) 
+    {
+        trace ('Pipeing: $relativeFilePath' + $mkPos() );
+        addInputBuffer(relativeFilePath)
+    }
 
 	public function parseFile(path:String)
 	{
-		var _input = input;
-
-		input = {
-			fname : path,
-			bpath : path,
-			buf : sys.io.File.getContent(path),
-			pos : 0,
-			lino : 1
-		};
-		trace('Reading from $path');
-		var ast = parseDocument();
-
-		input = _input;
-		return ast;
+        var filePathSplit = path.split("/");
+        var fileName = filePathSplit.pop();
+        var fileDir = filePathSplit.join("/");
+        addInputBuffer(fileName, fileDir);
+		trace('Parsing from file: $path');
+		return parseDocument();
 	}
+
+    public function parseStream(stream:haxe.io.Input, ?basePath=".")
+    {
+        addInputBuffer("stdin",basePath,stream.readAll()toString);
+        trace('Parsing from the standard input');
+        return parseDocument();
+    }
 
 	public function new() {}
 }

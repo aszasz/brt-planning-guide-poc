@@ -21,8 +21,9 @@ package format;
 	A source file position for an Expr.
 */
 typedef Pos = {
-	fileName : String,  // should be either relative to the root file, or absolute; relative names are preferred
-	lineNumber : Int  // starts at 1
+	file : String,  // should be either relative to the root file, or absolute; relative names are preferred
+	line : Int,  // starts at 1
+    pos : Int // starts at 1, does not account utf8 properly yet 
 }
 
 /*
